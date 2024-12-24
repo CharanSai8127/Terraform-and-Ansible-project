@@ -9,7 +9,5 @@ variable "ami_id" {
 variable "key" {
   default = "CKA-2024"
 }
-~
-~
-~
+
 
