@@ -1,0 +1,59 @@
+---
+- name: Installing tools on EC2 instance
+  hosts: webservers
+  become: yes
+  vars:
+    ansible_user: ubuntu
+  tasks:
+    - name: Update the default Linux packages
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install Java (OpenJDK 11) as a prerequisite for Nexus
+      ansible.builtin.apt:
+        name: openjdk-11-jre
+        state: present
+
+    - name: Install Docker to set up Nexus
+      ansible.builtin.apt:
+        name: docker.io
+        state: present
+
+- name: Configuring Docker to install Nexus
+  hosts: webservers
+  become: yes
+  tasks:
+    - name: Setup permissions for the user to execute docker commands
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+
+    - name: Ensure Docker is started and enabled
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Set Docker socket permissions (ensure appropriate access)
+      file:
+        path: /var/run/docker.sock
+        mode: '0666'
+
+- name: Running Nexus using a Docker container
+  hosts: webservers
+  become: yes
+  tasks:
+    - name: Run Nexus container
+      community.docker.docker_container:
+        name: nexus
+        image: sonatype/nexus3
+        state: started
+        ports:
+          - "8081:8081"
+          - "5000:5000"
+        restart_policy: always
+
+  
+
